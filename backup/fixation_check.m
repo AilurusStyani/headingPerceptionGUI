@@ -1,5 +1,6 @@
-function fixation_check(fixP,checkWin_pixel,fixT,eye_used,escape,win,fixationPosition,cKey,refreshRate,el)
-
+function [breakFlag,retryFlag] = fixation_check(fixP,checkWin_pixel,fixT,eye_used,escape,win,fixationPosition,cKey,refreshRate,el)
+breakFlag = 0;
+retryFlag = 0;
 global STARDATA
 global STARFIELD
 while 1
@@ -8,15 +9,18 @@ while 1
         for framei=1:1000
             [ ~, ~, keyCode ] = KbCheck;
             if keyCode(escape)
+                breakFlag = 1;
                 return;
             end
             if keyCode(cKey) % press c to calibrate
                 EyelinkDoTrackerSetup(el);
+                
+                % do a final check of calibration using driftcorrection
+                EyelinkDoDriftCorrection(el);
+    
+                Screen('FillRect', win ,blackBackground,[0 0 SCREEN.widthPixel SCREEN.heightPixel]);
+                
                 Eyelink('StartRecording');
-                eye_used = Eyelink('EyeAvailable'); % get eye that's tracked
-                if eye_used == el.BINOCULAR % if both eyes are tracked
-                    eye_used = el.LEFT_EYE; % use left eye
-                end
                 Eyelink('message', 'SYNCTIME');	 	 % zero-plot time for EDFVIEW
                 error=Eyelink('checkrecording'); 		% Check recording status */
                 if(error~=0)
@@ -25,7 +29,8 @@ while 1
                     Eyelink('ShutDown');
                     Screen('CloseAll');
                 end
-                break
+                retryFlag = 1;
+                return
             end
             
             % refresh the noise background every several frames

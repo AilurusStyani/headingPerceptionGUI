@@ -298,18 +298,19 @@ if isempty(subjectName)
 end
 
 dataFileName = ['saccadicChoice_eye_' subjectName datestr(now,'yymmddHHMM')];
-% MOVE.heading= [0 10 20 30 40 50 60 70 80 90 100 110 120 130 140 150 160 170 180];
 MOVE.heading= str2num(get(handles.degree,'String')) + 90; % define heading degree: 0 to 180 for left to right. 90 is straight ahead
 
-%MOVE.headingPC = [0 180]; % positive control
-%MOVE.repeatPC = 7; % repeat number for each positive control
+% MOVE.headingPC = [0 180]; % positive control
+% MOVE.repeatPC = 7; % repeat number for each positive control
 
 MOVE.time = str2double(get(handles.moveTime,'String')); % currently, the real time during stimulus period was set time * 4/5
 MOVE.velocity = str2double(get(handles.velocity,'String'));%% m/s
 MOVE.repeatNum = str2double(get(handles.repeatNum,'String'));%% trial repeat nums
 MOVE.coherence = str2double(get(handles.coherence,'String'));
-pupilAdaptionTime = str2double(get(handles.pupilAdaptionTime,'String'));
+pupilAdaptionTime = str2double(get(handles.pupilAdaptionTime,'String')); % unit Second
 feedback = get(handles.feedback,'Value');
+
+choicePeriod = str2double(get(handles.choicePeriod,'String')); % the duration for chosen, unit second
 
 eyelinkRecording = get(handles.eyelinkRecording,'Value');
 
@@ -325,13 +326,12 @@ if eyelinkRecording
     % for eye-choice version, define the related threshold
     eyeChoiceWindowSize = 2;%% eyeWindow set + - 2бу
     eyeChoiceTime = 0.2; %% chosen when fix on 0.2s = 200ms
-    choicePeriod = str2double(get(handles.choicePeriod,'String')); % the duration for chosen, unit second
     
     fixationThreshold = str2double(get(handles.fixationThreshold,'String')); % how long to pass the fixation check? unit s
 
     % for recording
-    SCREEN.width = 37.5; % cm
-    SCREEN.height = 30.7; % cm
+    SCREEN.width = 120; % cm
+    SCREEN.height = 65; % cm
     SCREEN.distance = 60; % cm
 else
     % for test & debug
@@ -345,7 +345,7 @@ end
 curdir = pwd;
 dataPath = get(handles.dataPath,'String');
 if isempty(dataPath)
-    saveDir = [curdir '\data\'];
+    saveDir = fullfile(curdir,'data');
 else
     saveDir = dataPath;
 end
@@ -368,19 +368,19 @@ end
 
 groupInit = repmat(MOVE.group,1,MOVE.repeatNum);
 
-% %% reverse for different repeat numbers for each condition
-% % MOVE.groupPC = zeros(2,length(MOVE.headingPC)*timeN);
-% % k=1;
-% % for i = 1:length(MOVE.headingPC)
-% %     for j = 1:timeN
-% %         MOVE.groupPC(1,k) =MOVE.headingPC(i);
-% %         MOVE.groupPC(2,k) =MOVE.time(j);
-% %         k=k+1;
-% %     end
-% % end
-% % groupInitPC = repmat(MOVE.groupPC,1,MOVE.repeatPC);
-% % 
-% % groupInit = [groupInit,groupInitPC];
+%% reverse for different repeat numbers for each condition
+% MOVE.groupPC = zeros(2,length(MOVE.headingPC)*timeN);
+% k=1;
+% for i = 1:length(MOVE.headingPC)
+%     for j = 1:timeN
+%         MOVE.groupPC(1,k) =MOVE.headingPC(i);
+%         MOVE.groupPC(2,k) =MOVE.time(j);
+%         k=k+1;
+%     end
+% end
+% groupInitPC = repmat(MOVE.groupPC,1,MOVE.repeatPC);
+% 
+% groupInit = [groupInit,groupInitPC];
 
 order = randperm(trialN);
 %%% add by ly 20180905
@@ -394,13 +394,13 @@ global GL;
 AssertOpenGL;
 global STARFIELD;
 % the size of the star field
-STARFIELD.dimensionX = 100;
+STARFIELD.dimensionX = 120;
 STARFIELD.dimensionY = 60;
 STARFIELD.dimensionZ = 60;
 % the size of the star
 STARFIELD.StarSize = 0.15;
 % the density of the star field
-STARFIELD.Density = 0.01;
+STARFIELD.Density = 0.005;
 % the coherence of the star field
 STARFIELD.Probability = MOVE.coherence;
 % set star's life time
@@ -431,8 +431,12 @@ InitializeMatlabOpenGL;
 PsychImaging('PrepareConfiguration');
 % Screen('Preference', 'SkipSyncTests', 1); % if something wrong, try this line
 
+% Define background color:
+whiteBackground = WhiteIndex(screenId);
+blackBackground = BlackIndex(screenId);
+
 % Open a double-buffered full-screen window on the main displays screen.
-[win, winRect] = PsychImaging('OpenWindow', screenId, 0, [], [], [], 0, 0);
+[win, winRect] = PsychImaging('OpenWindow', screenId, blackBackground);
 screenCentre= [winRect(3) winRect(4)]/2;
 SCREEN.widthPixel = winRect(3);
 SCREEN.heightPixel = winRect(4);
@@ -462,45 +466,49 @@ end
 
 %%%% add by ly 20180905
 
-el=EyelinkInitDefaults(win);
-el.backgroundcolour = BlackIndex(el.window);
-el.foregroundcolour = WhiteIndex(el.window);
-el.msgfontcolour    = WhiteIndex(el.window);
-el.imgtitlecolour   = GrayIndex(el.window);
-
-if ~EyelinkInit(dummymode)
-    fprintf('Eyelink Init aborted.\n');
-    cleanup;  % cleanup function
-    Eyelink('ShutDown');
-    Screen('CloseAll');
-    return
+if eyelinkRecording
+    el=EyelinkInitDefaults(win);
+    % el.backgroundcolour = BlackIndex(el.window);
+    % el.foregroundcolour = WhiteIndex(el.window);
+    % el.msgfontcolour    = WhiteIndex(el.window);
+    % el.imgtitlecolour   = GrayIndex(el.window);
+    
+    if ~EyelinkInit(dummymode)
+        fprintf('Eyelink Init aborted.\n');
+        cleanup;  % cleanup function
+        Eyelink('ShutDown');
+        Screen('CloseAll');
+        return
+    end
+    
+    i = Eyelink('Openfile', tempName);
+    if i~=0
+        fprintf('Cannot create EDF file ''%s'' ', dataFileName);
+        cleanup;
+        Eyelink('ShutDown');
+        Screen('CloseAll');
+        return
+    end
+    
+    %   SET UP TRACKER CONFIGURATION
+    Eyelink('command', 'calibration_type = HV9');
+    %	set parser (conservative saccade thresholds)
+    Eyelink('command', 'saccade_velocity_threshold = 35');
+    Eyelink('command', 'saccade_acceleration_threshold = 9500');
+    Eyelink('command', 'link_sample_data  = LEFT,RIGHT,GAZE,AREA');
+    Eyelink('command', 'online_dcorr_refposn = %1d, %1d', screenCentre(1), screenCentre(2));
+    Eyelink('command', 'online_dcorr_maxangle = %1d', 30.0);
+    % you must call this function to apply the changes from above
+    EyelinkUpdateDefaults(el);
+    
+    % Calibrate the eye tracker
+    EyelinkDoTrackerSetup(el);
+    
+    % do a final check of calibration using driftcorrection
+    EyelinkDoDriftCorrection(el);
+    
+    Screen('FillRect', win ,blackBackground,[0 0 SCREEN.widthPixel SCREEN.heightPixel]);
 end
-
-i = Eyelink('Openfile', tempName);
-if i~=0
-    fprintf('Cannot create EDF file ''%s'' ', dataFileName);
-    cleanup;
-    Eyelink('ShutDown');
-    Screen('CloseAll');
-    return
-end
-
-%   SET UP TRACKER CONFIGURATION
-Eyelink('command', 'calibration_type = HV9');
-%	set parser (conservative saccade thresholds)
-Eyelink('command', 'saccade_velocity_threshold = 35');
-Eyelink('command', 'saccade_acceleration_threshold = 9500');
-Eyelink('command', 'link_sample_data  = LEFT,RIGHT,GAZE,AREA');
-Eyelink('command', 'online_dcorr_refposn = %1d, %1d', screenCentre(1), screenCentre(2));
-Eyelink('command', 'online_dcorr_maxangle = %1d', 30.0);
-% you must call this function to apply the changes from above
-EyelinkUpdateDefaults(el);
-
-% Calibrate the eye tracker
-EyelinkDoTrackerSetup(el);
-
-% do a final check of calibration using driftcorrection
-EyelinkDoDriftCorrection(el);
 
 % set the marks for fixation and choice targets
 fixationPosition = [SCREEN.widthPixel/2-6 SCREEN.heightPixel/2-6 SCREEN.widthPixel/2+6 SCREEN.heightPixel/2+6];
@@ -515,15 +523,15 @@ time=zeros(1,trialN);
 distance= zeros(1,trialN);
 frameStartTime = zeros(1,trialN);
 frameEndTime = zeros(1,trialN);
-trialEndTime = zeros(1,trialN);
 
 %%% add by ly 20180905
 
-clipNear = 10;
+clipNear = 20;
 clipFar = 90;
 
 screenH = 58.29;
 screenW = 58.29;
+
 
 top = (clipNear / MOVE.camera2screenDist) * (screenH / 2.0);
 bottom = (clipNear / MOVE.camera2screenDist) * (-screenH / 2.0);
@@ -541,25 +549,35 @@ glColorMask(GL.TRUE, GL.TRUE, GL.TRUE, GL.TRUE);
 Screen('EndOpenGL', win);
 WaitSecs(1);
 
-Eyelink('StartRecording');
-eye_used = Eyelink('EyeAvailable'); % get eye that's tracked
-if eye_used == el.BINOCULAR % if both eyes are tracked
-    eye_used = el.LEFT_EYE; % use left eye
-end
-Eyelink('message', 'SYNCTIME');	 	 % zero-plot time for EDFVIEW
-error=Eyelink('checkrecording'); 		% Check recording status */
-if(error~=0)
-    fprintf('Eyelink checked wrong status.\n');
-    cleanup;  % cleanup function
-    Eyelink('ShutDown');
-    Screen('CloseAll');
+if eyelinkRecording
+    Eyelink('StartRecording');
+    eye_used = Eyelink('EyeAvailable'); % get eye that's tracked
+    if eye_used == el.BINOCULAR % if both eyes are tracked
+        eye_used = el.LEFT_EYE; % use left eye
+    end
+    Eyelink('message', 'SYNCTIME');	 	 % zero-plot time for EDFVIEW
+    error=Eyelink('checkrecording'); 		% Check recording status */
+    if(error~=0)
+        fprintf('Eyelink checked wrong status.\n');
+        cleanup;  % cleanup function
+        Eyelink('ShutDown');
+        Screen('CloseAll');
+    end
 end
 
 calibrateCkeck = tic;
 pupilAdapt = tic;
 
+adaptn = STARFIELD.lifeTime;
 while toc(pupilAdapt) <= pupilAdaptionTime
-    modifyStarField();
+    
+    if adaptn < STARFIELD.lifeTime
+        adaptn = adaptn+1;
+    else
+        modifyStarField();
+        adaptn = 1;
+    end
+    
     Screen('BeginOpenGL', win);
     glColorMask(GL.TRUE, GL.TRUE, GL.FALSE, GL.FALSE);
     glMatrixMode(GL.PROJECTION);
@@ -582,17 +600,18 @@ while toc(pupilAdapt) <= pupilAdaptionTime
     DrawDots3D(win,[STARDATA.x ; STARDATA.y; STARDATA.z]);
     % Show'em:
     Screen('Flip', win, 0, 0);
-    WaitSecs(STARFIELD.lifeTime/refreshRate);
 end
 
 i=1;
 while i <= trialN
     
+    breakFlag = 0; % 0 continue, 1 trial break
+    escFlag = 0;
     %%% add by ly 20180905
     orderi = order(i);
     groupi =groupInit(:,orderi);
     headi = groupi(1);
-    disp(['Moving direction ' num2str(headi)]);
+    disp(['Moving direction ' num2str(headi-90)]);
     timei = groupi(2);
     distancei = MOVE.velocity * timei;
     head(i)=headi;
@@ -607,12 +626,14 @@ while i <= trialN
         if calibration
             if toc(calibrateCkeck) >= calibrationInterval
                 EyelinkDoTrackerSetup(el);
+                
+                % do a final check of calibration using driftcorrection
+                EyelinkDoDriftCorrection(el);
+                
+                Screen('FillRect', win ,blackBackground,[0 0 SCREEN.widthPixel SCREEN.heightPixel]);
+                
                 Eyelink('StartRecording');
                 Eyelink('message', 'Auto-calibration');
-                eye_used = Eyelink('EyeAvailable'); % get eye that's tracked
-                if eye_used == el.BINOCULAR % if both eyes are tracked
-                    eye_used = el.LEFT_EYE; % use left eye
-                end
                 Eyelink('message', 'SYNCTIME');	 	 % zero-plot time for EDFVIEW
                 error=Eyelink('checkrecording'); 		% Check recording status */
                 if(error~=0)
@@ -626,14 +647,16 @@ while i <= trialN
         
         eyeChoiceWindowSizePixel = floor(eyeChoiceWindowSize*pixel2deg);
         Eyelink('message', ['fixation onset ' num2str(i)]);
-        fixation_check(screenCentre,eyeChoiceWindowSizePixel,fixationThreshold,eye_used,escape,win,fixationPosition,cKey,refreshRate,el);
+        [breakFlag,escFlag] = fixation_check(screenCentre,eyeChoiceWindowSizePixel,fixationThreshold,eye_used,escape,win,fixationPosition,cKey,refreshRate,el);
         if keyCode(cKey) % press c to calibrate
             EyelinkDoTrackerSetup(el);
+            
+            % do a final check of calibration using driftcorrection
+            EyelinkDoDriftCorrection(el);
+            
+            Screen('FillRect', win ,blackBackground,[0 0 SCREEN.widthPixel SCREEN.heightPixel]);
+            
             Eyelink('StartRecording');
-            eye_used = Eyelink('EyeAvailable'); % get eye that's tracked
-            if eye_used == el.BINOCULAR % if both eyes are tracked
-                eye_used = el.LEFT_EYE; % use left eye
-            end
             Eyelink('message', 'SYNCTIME');	 	 % zero-plot time for EDFVIEW
             error=Eyelink('checkrecording'); 		% Check recording status */
             if(error~=0)
@@ -648,14 +671,14 @@ while i <= trialN
     end
     
     [ ~, ~, keyCode ] = KbCheck;
-    if keyCode(escape) % long press escape to break the block
+    if keyCode(escape) || escFlag % long press escape to break the block
         break;
     end
     
     Screen('BlendFunction', win, GL_ONE, GL_ZERO);
     framesNum = length(Heave);
     
-    breakFlag = 0; % 0 continue, 1 trial break
+    
     
     for frames=1:framesNum
         Heavei = Heave(frames)*100;
@@ -872,13 +895,6 @@ while i <= trialN
         end
     end
         
-    if Eyelink( 'NewFloatSampleAvailable')>0
-        % get the sample in the form of an event structure
-        evt = Eyelink( 'NewestFloatSample');
-        if eye_used ~= -1 % do we know which eye to use yet?
-            trialEndTime(i) = evt.time;
-        end
-    end
     [ ~, ~, keyCode ] = KbCheck;
     if keyCode(escape)
         break;
@@ -905,11 +921,14 @@ if eyelinkRecording
     cd (saveDir);
     save([saveDir '\' dataFileName]);
     movefile([saveDir,'\',tempName,'.edf'],[saveDir,'\',dataFileName,'.edf']);
+    
+    %close the eye tracker.
+    Eyelink('ShutDown');
 end
+
 %% save the real and the choiced heading
-save([saveDir dataFileName],'head','time','distance','choice');
-%close the eye tracker.
-Eyelink('ShutDown');
+save(fullfile(saveDir, dataFileName),'head','time','distance','choice');
+
 Screen('CloseAll');
 cd(curdir);
 
