@@ -445,9 +445,9 @@ SCREEN.heightPixel = winRect(4);
 refreshRate=Screen('NominalFrameRate', SCREEN.screenId);
 
 pixel2deg = MOVE.camera2screenDist*tand(1)*winRect(3)/SCREEN.width;
-targetSize = floor(0.25*pixel2deg);
-tarDistance = floor(3*pixel2deg); % this is for vertical, if for horizon: floor(7*pixcel2deg);
-tarShift = floor(0.3*pixel2deg); % target shift on horizon if located on vertical.
+targetSize = floor(0.5*pixel2deg);
+tarDistance = floor(7*pixel2deg); % this is for vertical, if for horizon: floor(7*pixcel2deg);
+tarShift = floor(0.75*pixel2deg); % target shift on horizon if located on vertical.
 
 
 
@@ -565,6 +565,8 @@ if eyelinkRecording
     end
 end
 
+HideCursor(SCREEN.screenId);
+
 calibrateCkeck = tic;
 pupilAdapt = tic;
 
@@ -648,26 +650,9 @@ while i <= trialN
         eyeChoiceWindowSizePixel = floor(eyeChoiceWindowSize*pixel2deg);
         Eyelink('message', ['fixation onset ' num2str(i)]);
         [breakFlag,escFlag] = fixation_check(screenCentre,eyeChoiceWindowSizePixel,fixationThreshold,eye_used,escape,win,fixationPosition,cKey,refreshRate,el);
-        if keyCode(cKey) % press c to calibrate
-            EyelinkDoTrackerSetup(el);
-            
-            % do a final check of calibration using driftcorrection
-            EyelinkDoDriftCorrection(el);
-            
-            Screen('FillRect', win ,blackBackground,[0 0 SCREEN.widthPixel SCREEN.heightPixel]);
-            
-            Eyelink('StartRecording');
-            Eyelink('message', 'SYNCTIME');	 	 % zero-plot time for EDFVIEW
-            error=Eyelink('checkrecording'); 		% Check recording status */
-            if(error~=0)
-                fprintf('Eyelink checked wrong status.\n');
-                cleanup;  % cleanup function
-                Eyelink('ShutDown');
-                Screen('CloseAll');
-            end
-            Eyelink('message', 'Force calibration');
+        if ~breakFlag && ~escFlag
+            Eyelink('message', ['fixation done ' num2str(i)]);
         end
-        Eyelink('message', ['fixation done ' num2str(i)]);
     end
     
     [ ~, ~, keyCode ] = KbCheck;
@@ -786,6 +771,7 @@ while i <= trialN
         end
         % random seed for feedback text
         randomSeed = 0;
+        cn = STARFIELD.lifeTime;
         
         if eyelinkRecording
             if Eyelink( 'NewFloatSampleAvailable')>0
@@ -800,6 +786,7 @@ while i <= trialN
             
             if ((px<(tar1Location(1)+eyeChoiceWindowSizePixel))&&(px>(tar1Location(1)-eyeChoiceWindowSizePixel))&&(py<(tar1Location(2)+eyeChoiceWindowSizePixel))&&(py>(tar1Location(2)-eyeChoiceWindowSizePixel)))
                 fixLeft = tic;
+                
                 while toc(fixLeft) < eyeChoiceTime
                     if Eyelink( 'NewFloatSampleAvailable')>0
                         % get the sample in the form of an event structure
@@ -809,10 +796,15 @@ while i <= trialN
                             py = evt.gy(eye_used+1);
                         end
                     end
+                    if cn < STARFIELD.lifeTime
+                        cn = cn+1;
+                    else
+                        modifyStarField();
+                        cn = 1;
+                    end
+                    DrawDots3D(win,[STARDATA.x ; STARDATA.y; STARDATA.z]);
                     Screen('FillOval', win, [255 0 0 255], tar1Position);
                     Screen('FillOval', win, [255 0 0 255], tar2Position);
-                    modifyStarField();
-                    DrawDots3D(win,[STARDATA.x ; STARDATA.y; STARDATA.z]);
                     %                 Screen('FillOval', win, [255 255 0 255], [px-50 py-50 px+50 py+50]);
                     Screen('Flip', win);
                     
@@ -829,7 +821,12 @@ while i <= trialN
                                 Screen('FillOval', win, [255 255 0 255], tar1Position);
                                 Screen('FillOval', win, [255 0 0 255], tar2Position);
                             end
-                            modifyStarField();
+                            if cn < STARFIELD.lifeTime
+                                cn = cn+1;
+                            else
+                                modifyStarField();
+                                cn = 1;
+                            end
                             DrawDots3D(win,[STARDATA.x ; STARDATA.y; STARDATA.z]);
                             Screen('Flip', win);
                         end
@@ -850,9 +847,14 @@ while i <= trialN
                             py = evt.gy(eye_used+1);
                         end
                     end
+                    if cn < STARFIELD.lifeTime
+                        cn = cn+1;
+                    else
+                        modifyStarField();
+                        cn = 1;
+                    end
                     Screen('FillOval', win, [255 0 0 255], tar1Position);
                     Screen('FillOval', win, [255 0 0 255], tar2Position);
-                    modifyStarField();
                     DrawDots3D(win,[STARDATA.x ; STARDATA.y; STARDATA.z]);
                     %                 Screen('FillOval', win, [255 255 0 255], [px-50 py-50 px+50 py+50]);
                     Screen('Flip', win);
@@ -869,7 +871,12 @@ while i <= trialN
                                 Screen('FillOval', win, [255 0 0 255], tar1Position);
                                 Screen('FillOval', win, [255 255 0 255], tar2Position);
                             end
-                            modifyStarField();
+                            if cn < STARFIELD.lifeTime
+                                cn = cn+1;
+                            else
+                                modifyStarField();
+                                cn = 1;
+                            end
                             DrawDots3D(win,[STARDATA.x ; STARDATA.y; STARDATA.z]);
                             Screen('Flip', win);
                         end
