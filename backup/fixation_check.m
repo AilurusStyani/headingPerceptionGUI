@@ -1,8 +1,9 @@
 function [breakFlag,retryFlag] = fixation_check(fixP,checkWin_pixel,fixT,eye_used,escape,win,fixationPosition,cKey,refreshRate,el)
 breakFlag = 0;
 retryFlag = 0;
-global STARDATA
-global STARFIELD
+global STARDATA;
+global STARFIELD;
+global SCREEN;
 while 1
     for framej = 1:1000
         fixationStart = tic;
@@ -18,7 +19,7 @@ while 1
                 % do a final check of calibration using driftcorrection
                 EyelinkDoDriftCorrection(el);
     
-                Screen('FillRect', win ,blackBackground,[0 0 SCREEN.widthPixel SCREEN.heightPixel]);
+                Screen('FillRect', win ,BlackIndex(SCREEN.screenId),[0 0 SCREEN.widthPixel SCREEN.heightPixel]);
                 
                 Eyelink('StartRecording');
                 Eyelink('message', 'SYNCTIME');	 	 % zero-plot time for EDFVIEW

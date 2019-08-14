@@ -422,7 +422,7 @@ dummymode=0;
 %%% add by ly 20180905
 
 % Find the screen to use for display:
-screenId=max(Screen('Screens'));
+SCREEN.screenId=max(Screen('Screens'));
 
 % Setup Psychtoolbox for OpenGL 3D rendering support and initialize the
 % mogl OpenGL for Matlab wrapper:
@@ -432,17 +432,17 @@ PsychImaging('PrepareConfiguration');
 % Screen('Preference', 'SkipSyncTests', 1); % if something wrong, try this line
 
 % Define background color:
-whiteBackground = WhiteIndex(screenId);
-blackBackground = BlackIndex(screenId);
+whiteBackground = WhiteIndex(SCREEN.screenId);
+blackBackground = BlackIndex(SCREEN.screenId);
 
 % Open a double-buffered full-screen window on the main displays screen.
-[win, winRect] = PsychImaging('OpenWindow', screenId, blackBackground);
+[win, winRect] = PsychImaging('OpenWindow', SCREEN.screenId, blackBackground);
 screenCentre= [winRect(3) winRect(4)]/2;
 SCREEN.widthPixel = winRect(3);
 SCREEN.heightPixel = winRect(4);
 
 % Get current monitor refreshing rate
-refreshRate=Screen('NominalFrameRate', screenId);
+refreshRate=Screen('NominalFrameRate', SCREEN.screenId);
 
 pixel2deg = MOVE.camera2screenDist*tand(1)*winRect(3)/SCREEN.width;
 targetSize = floor(0.25*pixel2deg);
