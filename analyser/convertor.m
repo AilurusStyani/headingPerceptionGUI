@@ -266,7 +266,6 @@ function pushbutton2_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 filePath1 = get(handles.filePath1,'String');
 edf2asc = get(handles.edf2asc,'Value');
-asc2mat = get(handles.asc2mat,'Value');
 
 if isempty(filePath1)
     set(handles.pathLog1,'String','You need to input file path before start!')
@@ -342,6 +341,7 @@ if edf2asc
     end
 end
 
+asc2mat = get(handles.asc2mat,'Value');
 if asc2mat
     ascFile = dir('*.asc');
     ascFileNum = length(ascFile);
