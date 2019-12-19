@@ -22,7 +22,7 @@ function varargout = main(varargin)
 
 % Edit the above text to modify the response to help main
 
-% Last Modified by GUIDE v2.5 19-Dec-2019 17:50:01
+% Last Modified by GUIDE v2.5 19-Dec-2019 14:15:00
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -72,7 +72,7 @@ if ~isempt(logFile)
         set(handles.deviation,'String',num2str(TRIALINFO.deviation));
         set(handles.choiceTopDown,'Value',TRIALINFO.choiceTopDown);
         set(handles.choiceLeftRight,'Value',TRIALINFO.choiceLeftRight);
-        set(handles.dataPath,'String',num2str(TRIALINFO.dataPath));
+        set(handle)
         
         set(handles.eyelinkRecording,'Value',TRIALINFO.eyelinkRecording);
         
@@ -83,7 +83,6 @@ if ~isempt(logFile)
                 set(handles.calibration,'Value',TRIALINFO.calibration);
                 set(handles.calibrationInterval,'String',num2str(TRIALINFO.calibrationInterval));
                 
-                set(handles.fixationWindow,'String',num2str(TRIALINFO.fixationWindow));
                 set(handles.fixationThreshold,'String',num2str(TRIALINFO.fixationThreshold));
             end
         end
@@ -353,13 +352,6 @@ TRIALINFO.coherence = str2double(get(handles.coherence,'String'));
 TRIALINFO.pupilAdaptionTime = str2double(get(handles.pupilAdaptionTime,'String'));
 TRIALINFO.feedback = get(handles.feedback,'Value');
 
-% set(handles.lifeTime,'String',num2str(TRIALINFO.lifeTime));
-%         set(handles.deviation,'String',num2str(TRIALINFO.deviation));
-%         set(handles.choiceTopDown,'Value',TRIALINFO.choiceTopDown);
-%         set(handles.choiceLeftRight,'Value',TRIALINFO.choiceLeftRight);
-%         set(handles.dataPath,'String',num2str(TRIALINFO.dataPath));
-%         fixationWindow
-        
 TRIALINFO.eyelinkRecording = get(handles.eyelinkRecording,'Value');
 
 if TRIALINFO.eyelinkRecording
