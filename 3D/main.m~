@@ -22,7 +22,7 @@ function varargout = main(varargin)
 
 % Edit the above text to modify the response to help main
 
-% Last Modified by GUIDE v2.5 19-Dec-2019 14:15:00
+% Last Modified by GUIDE v2.5 19-Dec-2019 17:50:01
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -56,7 +56,7 @@ function main_OpeningFcn(hObject, eventdata, handles, varargin)
 handles.output = hObject;
 
 logFile = dir('log.mat');
-if ~isempt(logFile)
+if ~isempty(logFile)
     load(logFile(1).name);
     if exist('TRIALINFO','VAR')
         set(handles.degree,'Striing',num2str(TRIALINFO.heading));
@@ -72,7 +72,7 @@ if ~isempt(logFile)
         set(handles.deviation,'String',num2str(TRIALINFO.deviation));
         set(handles.choiceTopDown,'Value',TRIALINFO.choiceTopDown);
         set(handles.choiceLeftRight,'Value',TRIALINFO.choiceLeftRight);
-        set(handle)
+        set(handles.dataPath,'String',num2str(TRIALINFO.dataPath));
         
         set(handles.eyelinkRecording,'Value',TRIALINFO.eyelinkRecording);
         
@@ -83,6 +83,7 @@ if ~isempt(logFile)
                 set(handles.calibration,'Value',TRIALINFO.calibration);
                 set(handles.calibrationInterval,'String',num2str(TRIALINFO.calibrationInterval));
                 
+                set(handles.fixationWindow,'String',num2str(TRIALINFO.fixationWindow));
                 set(handles.fixationThreshold,'String',num2str(TRIALINFO.fixationThreshold));
             end
         end
@@ -332,7 +333,7 @@ if isempty(logFile)
     errordlg('Please input your screen parameters first.','Error','modal');
     return
 else
-    load(logFile.name);
+    log = load(logFile.name);
 end
 
 subjectName = get(handles.subjectName,'String');
@@ -352,6 +353,13 @@ TRIALINFO.coherence = str2double(get(handles.coherence,'String'));
 TRIALINFO.pupilAdaptionTime = str2double(get(handles.pupilAdaptionTime,'String'));
 TRIALINFO.feedback = get(handles.feedback,'Value');
 
+% set(handles.lifeTime,'String',num2str(TRIALINFO.lifeTime));
+%         set(handles.deviation,'String',num2str(TRIALINFO.deviation));
+%         set(handles.choiceTopDown,'Value',TRIALINFO.choiceTopDown);
+%         set(handles.choiceLeftRight,'Value',TRIALINFO.choiceLeftRight);
+%         set(handles.dataPath,'String',num2str(TRIALINFO.dataPath));
+%         fixationWindow
+        
 TRIALINFO.eyelinkRecording = get(handles.eyelinkRecording,'Value');
 
 if TRIALINFO.eyelinkRecording
@@ -371,6 +379,8 @@ if TRIALINFO.eyelinkRecording
     TRIALINFO.fixationThreshold = str2double(get(handles.fixationThreshold,'String')); % how long to pass the fixation check? unit s
 end
 
+save('log.mat','TRIALINFO')
+
 % set keyboard
 KbName('UnifyKeyNames'); 
 skipKey = KbName('space');
@@ -388,16 +398,6 @@ deviationAdjust = 0.2; % how fast to adjust the deviation by key pressing, cm
 
 %% parameters
 coordinateMuilty = 1; % convert cm to coordinate system for moving distance etc.
-SCREEN.distance = 60*coordinateMuilty;% cm
-
-if TRIALINFO.eyelinkRecording
-    SCREEN.widthCM = 34.5*coordinateMuilty; % cm, need to measure in your own PC
-    SCREEN.heightCM = 19.7*coordinateMuilty; % cm, need to measure in your own PC
-else
-    SCREEN.widthCM = 120*coordinateMuilty; % cm
-    SCREEN.heightCM = 65*coordinateMuilty; % cm
-end
-
 TRIALINFO.repetition = 15;
 TRIALINFO.motionType = [1 2 3 4]; % 1: fixation; 2: normal pursuit; 3: simulated pursuit; 4:stabilized pursuit
 % TRIALINFO.headingDegree = [-10 0 10] ; % degre
@@ -450,15 +450,15 @@ choicePeriod = 2; % s
 
 global GL;
 if TRIALINFO.eyelinkRecording
-    Screen('Preference', 'SkipSyncTests', 1); % for debug/test
+    Screen('Preference', 'SkipSyncTests', 0); % for debug/test
 else
-    Screen('Preference', 'SkipSyncTests', 0); % for recording
+    Screen('Preference', 'SkipSyncTests', 1); % for recording
 end
 
 AssertOpenGL;
 InitializeMatlabOpenGL;
 
-SCREEN.screenId = max(Screen('Screens'));
+SCREEN.screenId = max(Screen('Screens'))-1;
 PsychImaging('PrepareConfiguration');
 
 % Define background color:
@@ -466,7 +466,7 @@ whiteBackground = WhiteIndex(SCREEN.screenId);
 blackBackground = BlackIndex(SCREEN.screenId);
 
 % Open a double-buffered full-screen window on the main displays screen.
-[win , winRect] = PsychImaging('OpenWindow', SCREEN.screenId, whiteBackground);
+[win , winRect] = PsychImaging('OpenWindow', SCREEN.screenId);
 SCREEN.widthPix = winRect(3);
 SCREEN.heightPix = winRect(4);
 SCREEN.center = [SCREEN.widthPix/2, SCREEN.heightPix/2];

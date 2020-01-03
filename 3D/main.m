@@ -22,7 +22,7 @@ function varargout = main(varargin)
 
 % Edit the above text to modify the response to help main
 
-% Last Modified by GUIDE v2.5 19-Dec-2019 17:50:01
+% Last Modified by GUIDE v2.5 03-Jan-2020 16:25:57
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -56,7 +56,7 @@ function main_OpeningFcn(hObject, eventdata, handles, varargin)
 handles.output = hObject;
 
 logFile = dir('log.mat');
-if ~isempt(logFile)
+if ~isempty(logFile)
     load(logFile(1).name);
     if exist('TRIALINFO','VAR')
         set(handles.degree,'Striing',num2str(TRIALINFO.heading));
@@ -85,6 +85,9 @@ if ~isempt(logFile)
                 
                 set(handles.fixationWindow,'String',num2str(TRIALINFO.fixationWindow));
                 set(handles.fixationThreshold,'String',num2str(TRIALINFO.fixationThreshold));
+                
+                set(handles.handle,'Value',TRIALINFO.handle);
+                set(handles.gazePosition,'Value',TRIALINFO.gazePosition);
             end
         end
     end
@@ -333,33 +336,32 @@ if isempty(logFile)
     errordlg('Please input your screen parameters first.','Error','modal');
     return
 else
-    load(logFile.name);
+    log = load(logFile.name);
 end
 
 subjectName = get(handles.subjectName,'String');
 subjectName = strrep(subjectName,' ',''); % delete blank space
+subjectName = strrep(subjectName,'_','');
 
 if isempty(subjectName)
     subjectName = 'test';
 end
 
-dataFileName = ['saccadicChoice_eye_' subjectName datestr(now,'yymmddHHMM')];
+dataFileName = ['headingPerception_' subjectName '_' datestr(now,'yymmddHHMM')];
 TRIALINFO.heading= str2num(get(handles.degree,'String')); % right: positive; left: negative
 
 TRIALINFO.time = str2double(get(handles.moveTime,'String')); % currently, the real time during stimulus period was set time * 4/5
 TRIALINFO.velocity = str2double(get(handles.velocity,'String'));%% m/s
-TRIALINFO.repeatNum = str2double(get(handles.repeatNum,'String'));%% trial repeat nums
+TRIALINFO.repetition = str2double(get(handles.repeatNum,'String'));%% trial repeat nums
 TRIALINFO.coherence = str2double(get(handles.coherence,'String'));
 TRIALINFO.pupilAdaptionTime = str2double(get(handles.pupilAdaptionTime,'String'));
 TRIALINFO.feedback = get(handles.feedback,'Value');
+TRIALINFO.deviation = str2double(get(handles.deviation,'String')); % initial binocular deviation, cm
+deviationAdjust = 0.2; % how fast to adjust the deviation by key pressing, cm
 
-% set(handles.lifeTime,'String',num2str(TRIALINFO.lifeTime));
-%         set(handles.deviation,'String',num2str(TRIALINFO.deviation));
-%         set(handles.choiceTopDown,'Value',TRIALINFO.choiceTopDown);
-%         set(handles.choiceLeftRight,'Value',TRIALINFO.choiceLeftRight);
-%         set(handles.dataPath,'String',num2str(TRIALINFO.dataPath));
-%         fixationWindow
-        
+TRIALINFO.lifeTime = str2double(get(handles.lifeTime,'String'));
+TRIALINFO.choicePeriod = str2double(get(handles.choicePeriod,'String'));
+
 TRIALINFO.eyelinkRecording = get(handles.eyelinkRecording,'Value');
 
 if TRIALINFO.eyelinkRecording
@@ -367,17 +369,24 @@ if TRIALINFO.eyelinkRecording
     TRIALINFO.trialBreak = get(handles.trialBreak,'Value');
     TRIALINFO.checkWindowDegree = str2double(get(handles.checkWindow,'String'));
     
-    % for calibration options
+    % for auto-calibration options
     TRIALINFO.calibration = get(handles.calibration,'Value');
     TRIALINFO.calibrationInterval = str2double(get(handles.calibrationInterval,'String')) * 60; % minutes to seconds
     
     % for eye-choice version, define the related threshold
-    TRIALINFO.eyeChoiceWindowSize = 2;%% eyeWindow set + - 2¡ã
-    TRIALINFO.eyeChoiceTime = 0.2; %% chosen when fix on 0.2s = 200ms
-    TRIALINFO.choicePeriod = str2double(get(handles.choicePeriod,'String')); % the duration for chosen, unit second
+    TRIALINFO.fixationWindow = str2double(get(handles.fixationWindow,'String'));%% eyeWindow set + - 2¡ã
+    TRIALINFO.fixationThreshold = str2double(get(handles.fixationThreshold,'String')); %% chosen when fix on 0.2s = 200ms
     
-    TRIALINFO.fixationThreshold = str2double(get(handles.fixationThreshold,'String')); % how long to pass the fixation check? unit s
+    % choicing method
+    TRIALINFO.handle = get(handles.handle,'Value');
+    TRIALINFO.gazePosition = get(handles.gazePosition,'Value');
 end
+
+SCREEN.distance = log.SCREEN.distance;% cm
+SCREEN.widthCM = log.SCREEN.width; % cm
+SCREEN.heightCM = log.SCREEN.height; % cm
+
+save('log.mat','TRIALINFO','SCREEN')
 
 % set keyboard
 KbName('UnifyKeyNames'); 
@@ -391,36 +400,12 @@ cKey = KbName('c'); % force calibration
 pageUp = KbName('pageup'); % increase binocular deviation
 pageDown = KbName('pagedown'); % decrease binocular deviation
 
-TRIALINFO.deviation = 1.2; % initial binocular deviation, cm
-deviationAdjust = 0.2; % how fast to adjust the deviation by key pressing, cm
 
 %% parameters
-coordinateMuilty = 1; % convert cm to coordinate system for moving distance etc.
-SCREEN.distance = 60*coordinateMuilty;% cm
-
-if TRIALINFO.eyelinkRecording
-    SCREEN.widthCM = 34.5*coordinateMuilty; % cm, need to measure in your own PC
-    SCREEN.heightCM = 19.7*coordinateMuilty; % cm, need to measure in your own PC
-else
-    SCREEN.widthCM = 120*coordinateMuilty; % cm
-    SCREEN.heightCM = 65*coordinateMuilty; % cm
-end
-
-TRIALINFO.repetition = 15;
-TRIALINFO.motionType = [1 2 3 4]; % 1: fixation; 2: normal pursuit; 3: simulated pursuit; 4:stabilized pursuit
-% TRIALINFO.headingDegree = [-10 0 10] ; % degre
-TRIALINFO.headingDegree = [-45 -30 -15 0 15 30 45]; % degree
-TRIALINFO.headingSpeed = 50*coordinateMuilty; % cm/s
-TRIALINFO.coherence = 100;
 TRIALINFO.fixationSizeD = 0.25;  % degree
 
-% fixation period (fixation point only)          --> 
-% pause period (3D cloud appear, not moving)	--> 
-% pre movement duration (heading only)          -->
-% movement duration (heading with pursuit/fixation)
 TRIALINFO.fixationPeriod = 0.5; % second
 TRIALINFO.pausePeriod = 0.18; % second
-TRIALINFO.preMoveDuration = 0.4; % second
 TRIALINFO.moveDuration = 1; % second
 
 TRIALINFO.fixationWindow = 2; % degree
@@ -428,27 +413,17 @@ TRIALINFO.pursuitWindow = 4; % degree
 
 TRIALINFO.intertrialInterval = 1; % second
 
-% for motion type 3
-TRIALINFO.rotationDegree = [-10 10]; % ¡ã£¬the degree of the star' rotation
-TRIALINFO.rotationSpeed = 10;  % ¡ã/s
-
-% for motion type 2 and 4
-TRIALINFO.fixMoveDirection = [1 3]; % only for motion type 2 and 4. 1: left to right; 2: constant at the center; 3: right to left;
-TRIALINFO.fixationDegree = 4; % degree ¡À to center
-TRIALINFO.fixationInitialDegree = 5; % degree ¡À to center
-TRIALINFO.fixSpeed = TRIALINFO.rotationSpeed;
-
 % parameters for the star field
-STARFIELD.dimensionX = 400*coordinateMuilty;  % cm
-STARFIELD.dimensionY = 400*coordinateMuilty;  % cm
-STARFIELD.dimensionZ = 700*coordinateMuilty;  % cm
+STARFIELD.dimensionX = 400;  % cm
+STARFIELD.dimensionY = 400;  % cm
+STARFIELD.dimensionZ = 700;  % cm
 STARFIELD.starSize = 0.1;    % degree
-STARFIELD.density = 1000/(100*coordinateMuilty)^3;    % convert num/m^3 to num/cm^3
+STARFIELD.density = 1000/100^3;    % convert num/m^3 to num/cm^3
 
 STARFIELD.probability = TRIALINFO.coherence;
 
 % parameters for the camera
-CAMERA.elevation = 0*coordinateMuilty; % unit cm, average height of a human
+CAMERA.elevation = 0; % unit cm, average height of a human
 CAMERA.distance = SCREEN.distance; % unit cm, distance from participant to the screen
 CAMERA.sightDegreeVer = atand(SCREEN.heightCM * 0.5 / CAMERA.distance)*2; % degree of view field on vertical
 CAMERA.sightDegreeHor = atand(SCREEN.widthCM * 0.5 / CAMERA.distance)*2; % degree of view field on horizon
@@ -458,15 +433,15 @@ choicePeriod = 2; % s
 
 global GL;
 if TRIALINFO.eyelinkRecording
-    Screen('Preference', 'SkipSyncTests', 1); % for debug/test
+    Screen('Preference', 'SkipSyncTests', 0); % for debug/test
 else
-    Screen('Preference', 'SkipSyncTests', 0); % for recording
+    Screen('Preference', 'SkipSyncTests', 1); % for recording
 end
 
 AssertOpenGL;
 InitializeMatlabOpenGL;
 
-SCREEN.screenId = max(Screen('Screens'));
+SCREEN.screenId = max(Screen('Screens'))-1;
 PsychImaging('PrepareConfiguration');
 
 % Define background color:
@@ -474,7 +449,7 @@ whiteBackground = WhiteIndex(SCREEN.screenId);
 blackBackground = BlackIndex(SCREEN.screenId);
 
 % Open a double-buffered full-screen window on the main displays screen.
-[win , winRect] = PsychImaging('OpenWindow', SCREEN.screenId, whiteBackground);
+[win , winRect] = PsychImaging('OpenWindow', SCREEN.screenId);
 SCREEN.widthPix = winRect(3);
 SCREEN.heightPix = winRect(4);
 SCREEN.center = [SCREEN.widthPix/2, SCREEN.heightPix/2];
@@ -486,8 +461,11 @@ TRIALINFO.fixationPosition{3} = [SCREEN.widthPix/2+degree2pix(TRIALINFO.fixation
 
 SCREEN.refreshRate = Screen('NominalFrameRate', SCREEN.screenId);
 
+FRUSTUM.clipNear = 50; % cm
+FRUSTUM.clipFar = 100; % cm
+
 %% the configuration of the Frustum
-calculateFrustum(coordinateMuilty);
+calculateFrustum();
 
 Screen('BeginOpenGL', win);
 glViewport(0, 0, RectWidth(winRect), RectHeight(winRect));
@@ -674,14 +652,14 @@ while triali <= trialNum
         if keyCode(pageUp)
             TRIALINFO.deviation = TRIALINFO.deviation + deviationAdjust;
             disp(['binocular deviation: ' num2str(TRIALINFO.deviation)]);
-            calculateFrustum(coordinateMuilty);
+            calculateFrustum();
             [pglXl,pglYl,pglZl,pfXl,pfYl,pfZl,pglXr,pglYr,pglZr,pfXr,pfYr,pfZr] = calculateCameraPosition(pglX,pglY,pglZ,pfX,pfY,pfZ);
             [pXl,pYl,pZl,fXl,fYl,fZl,pXr,pYr,pZr,fXr,fYr,fZr] = calculateCameraPosition(glX,glY,glZ,fX,fY,fZ);
         elseif keyCode(pageDown)
             if TRIALINFO.deviation > deviationAdjust
                 TRIALINFO.deviation = TRIALINFO.deviation - deviationAdjust;
                 disp(['binocular deviation: ' num2str(TRIALINFO.deviation)]);
-                calculateFrustum(coordinateMuilty);
+                calculateFrustum();
                 [pglXl,pglYl,pglZl,pfXl,pfYl,pfZl,pglXr,pglYr,pglZr,pfXr,pfYr,pfZr] = calculateCameraPosition(pglX,pglY,pglZ,pfX,pfY,pfZ);
                 [pXl,pYl,pZl,fXl,fYl,fZl,pXr,pYr,pZr,fXr,fYr,fZr] = calculateCameraPosition(glX,glY,glZ,fX,fY,fZ);
             end
@@ -765,13 +743,13 @@ while triali <= trialNum
             if keyCode(pageUp)
                 TRIALINFO.deviation = TRIALINFO.deviation + deviationAdjust;
                 disp(['binocular deviation: ' num2str(TRIALINFO.deviation)]);
-                calculateFrustum(coordinateMuilty)
+                calculateFrustum()
                 [pXl,pYl,pZl,fXl,fYl,fZl,pXr,pYr,pZr,fXr,fYr,fZr] = calculateCameraPosition(glX,glY,glZ,fX,fY,fZ);
             elseif keyCode(pageDown)
                 if TRIALINFO.deviation > deviationAdjust
                     TRIALINFO.deviation = TRIALINFO.deviation - deviationAdjust;
                     disp(['binocular deviation: ' num2str(TRIALINFO.deviation)]);
-                    calculateFrustum(coordinateMuilty)
+                    calculateFrustum()
                     [pXl,pYl,pZl,fXl,fYl,fZl,pXr,pYr,pZr,fXr,fYr,fZr] = calculateCameraPosition(glX,glY,glZ,fX,fY,fZ);
                 end
             end
@@ -1846,3 +1824,12 @@ function pushbutton2_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 screenPar();
+
+
+% --- Executes on button press in handle.
+function handle_Callback(hObject, eventdata, handles)
+% hObject    handle to handle (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of handle
