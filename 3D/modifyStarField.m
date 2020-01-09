@@ -6,9 +6,9 @@ global STARDATA;
 dimensionX = STARFIELD.dimensionX;
 dimensionY = STARFIELD.dimensionY;
 dimensionZ = STARFIELD.dimensionZ ;
-size = STARFIELD.StarSize ;
-density = STARFIELD.Density ;
-probability = STARFIELD.Probability ;
+size = STARFIELD.starSize ;
+density = STARFIELD.density ;
+probability = STARFIELD.probability ;
 totalDots = dimensionX*dimensionY*dimensionZ*density;
 totalModifyDots = floor(totalDots*(1.0-probability));
 j = 1;
@@ -17,7 +17,7 @@ if totalModifyDots>1
         if probability < rand()
             baseX=rand()*dimensionX-dimensionX/2.0;
             baseY=rand()*dimensionY-dimensionY/2.0;
-            baseZ=rand()*dimensionZ-dimensionZ/2.0;
+            baseZ=rand()*dimensionZ-dimensionZ/4.0*3.0;
       
             %Vertex1
             Vertex1X=baseX - size/2.0;

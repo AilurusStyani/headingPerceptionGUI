@@ -121,7 +121,7 @@ if ~isempty(fileName)
 %         if j == 1 || j == length(unique_head)
 %             P_right = cat(2,P_right,sum(trialInfo.choice(trialInfo.head == unique_head(j))) ./ head_times_PC);
 %         else
-            P_right = cat(2,P_right,sum(subjInfo.choice(subjInfo.head == unique_head(j))) ./ head_times);
+            P_right = cat(2,P_right,sum(subjInfo.choice(subjInfo.head == unique_head(j))-1) ./ head_times);
 %         end
     end
     fit_data = [unique_head',P_right',head_times * ones(length(unique_head),1)];
@@ -131,17 +131,17 @@ if ~isempty(fileName)
     xi = min(unique_head):0.1:max(unique_head);
     y_fit = cum_gaussfit([Bias,Threshold],xi);
     
-    plot([90,90],[0,1],'-.k');
+    plot([0,0],[0,1],'-.k');
     hold on
     plot(unique_head,P_right,'*');
     plot(xi,y_fit,'-');
-    set(gca, 'xlim',[85,95])
+    set(gca, 'xlim',[-10,10])
     xlabel('Heading degree');
     ylabel('Proportion of "right" choice');
 %     hleg1=legend('choice','mean & standard error','linear result');
 %     set(hleg1,'Location','EastOutside')
-    text(87,0.8,sprintf('\\it\\mu_{psy} = \\rm%6.3g\\circ',Bias),'color','b')
-    text(87,0.7,sprintf('\\it\\sigma_{psy} = \\rm%6.3g\\circ', Threshold),'color','b')
+    text(-9,0.8,sprintf('\\it\\mu_{psy} = \\rm%6.3g\\circ',Bias),'color','b')
+    text(-9,0.7,sprintf('\\it\\sigma_{psy} = \\rm%6.3g\\circ', Threshold),'color','b')
 end
 
 
