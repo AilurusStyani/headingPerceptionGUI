@@ -239,7 +239,36 @@ else
     set(handles.pathLog2,'String','No eye data in this file.');
     set(handles.pathLog2,'ForegroundColor',[1 0 0]);
 end
-    
+
+logFile = strrep(fileName,'Converted_','');
+log = load(logFile);
+
+st{1} = data.movingStart(:,1);
+ed{1} = data.startChoice(:,1);
+
+st{2} = data.clockClick(:,1)-500;
+ed{2} = data.clockClick(:,1)+500;
+
+st{3} = data.movingStart(:,1)+log.clockTime(1:size(data.movingStart,1))'-500;
+ed{3} = data.movingStart(:,1)+log.clockTime(1:size(data.movingStart,1))'+500;
+
+for i = 1:length(st)
+    figure(1+i);cgf
+    hold off
+    pupilSize = nan(max(ed{i}-st{i}),length(st{i}));
+    for j = 1:length(st{i})
+        sP = find(data.eyeData(:,1) >= st{i}(j),1);
+        if i == 1
+            basement = mean(data.eyeData(sP-100:sP,4));
+        end
+        eP = find(data.eyeData(:,1) <= ed{i}(j),1,'last');
+        pupilSize(1:eP-sP+1,j) = (data.eyeData(sP:eP,4)-basement)/basement;
+    end
+    pupilSize = pupilSize';
+    pMean = nanmean(pupilSize,1);
+    pSe = nanstd(pupilSize,1)./sqrt(sum(~isnan(pupilSize),1));
+    shadedErrorBar(1:size(pupilSize,2),pMean,pSe);
+end
 
 
 
@@ -368,6 +397,14 @@ if asc2mat
         delIndex = diff(stimulusTerm(:,2))==0;
         stimulusTerm(delIndex,:) = [];
         
+        msStr = rawData(contains(rawData,'Moving start','IgnoreCase',true));
+        movingStart = nan(length(msStr),2);
+        for j = 1:length(msStr)
+            movingStart(j,:) = cell2mat(cellfun(@str2num,regexp(msStr{j},'\d*\.?\d*','match'),'UniformOutput',false));
+        end
+        delIndex = diff(movingStart(:,2))==0;
+        movingStart(delIndex,:) = [];
+        
         scStr = rawData(contains(rawData,'start choice','IgnoreCase',true));
         startChoice = nan(length(scStr),2);
         for j = 1:length(scStr)
@@ -375,6 +412,14 @@ if asc2mat
         end
         delIndex = diff(startChoice(:,2))==0;
         startChoice(delIndex,:) = [];
+        
+        ccStr = rawData(contains(rawData,'clock click','IgnoreCase',true));
+        clockClick = nan(length(ccStr),2);
+        for j = 1:length(ccStr)
+            clockClick(j,:) = cell2mat(cellfun(@str2num,regexp(ccStr{j},'\d*\.?\d*','match'),'UniformOutput',false));
+        end
+        delIndex = diff(clockClick(:,2))==0;
+        clockClick(delIndex,:) = [];
         
         dmStr = rawData(contains(rawData,'decision made','IgnoreCase',true));
         decisionMade = nan(length(dmStr),3);
@@ -397,9 +442,9 @@ if asc2mat
         eyeData = cell2mat(cellfun(@str2num,strrep(eyeData,'...',''),'UniformOutput',false));
         
         save(saveNamei,'eyeData','trialEnd','decisionMade','startChoice','stimulusTerm','trialBreak','stimulusOnset',...
-            'fixationDone','fixationOnset')
+            'fixationDone','fixationOnset','clockClick','movingStart')
         
-        waitbar(i/edfFileNum,wb2,['.ASC to .MAT in processing... ' num2str(i/edfFileNum*100) '%']);
+        waitbar(i/ascFileNum,wb2,['.ASC to .MAT in processing... ' num2str(i/ascFileNum*100) '%']);
     end
     delete(wb2);
 end
