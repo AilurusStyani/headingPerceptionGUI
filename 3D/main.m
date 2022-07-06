@@ -56,7 +56,7 @@ function main_OpeningFcn(hObject, eventdata, handles, varargin)
 handles.output = hObject;
 
 logFile = dir('log.mat');
-if ~isempt(logFile)
+if ~isempty(logFile)
     load(logFile(1).name);
     if exist('TRIALINFO','VAR')
         set(handles.degree,'Striing',num2str(TRIALINFO.heading));
